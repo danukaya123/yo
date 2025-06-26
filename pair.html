@@ -326,7 +326,7 @@
           '<a style="color:white;font-weight:bold">❗Enter your WhatsApp number with country code.</a><br>';
       } else if (c.value.replace(/[^0-9]/g, "").length < 11) {
         a.innerHTML =
-          '<a style="color:white;font-weight:bold">❗Invalid number format. Please try again.</a><br><br>';
+          '<a style="color:white;font-weight:bold">❗Invalid number format. Please try again.</a><br>';
       } else {
         const bc = c.value.replace(/[^0-9]/g, "");
         c.type = "text";
@@ -337,7 +337,7 @@
         try {
           let { data } = await axios(`/code?number=${bc}`);
           let code = data.code || "❗ Service Unavailable";
-          a.innerHTML = `<font id="copy" onclick="Copy()" style="color:red;font-weight:bold" size="5">CODE: <span style="color:white;font-weight:bold">${code}</span></font><br><br><br>`;
+          a.innerHTML = `<font id="copy" onclick="Copy()" style="color:red;font-weight:bold" size="5">CODE: <span style="color:white;font-weight:bold">${code}</span></font><br>`;
         } catch {
           a.innerHTML =
             "<span style='color:red;font-weight:bold'>❗ Error getting code</span>";

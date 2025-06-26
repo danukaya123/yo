@@ -4,10 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DANUWA-MD | Pairing</title>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-  />
+  <link rel="icon" href="https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/Danuwa%20-%20MD.png?raw=true" type="image/png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
   <style>
     * {
@@ -19,14 +17,7 @@
     body {
       font-family: 'Segoe UI', sans-serif;
       height: 100vh;
-      background: linear-gradient(
-        135deg,
-        #02080b,
-        #0a161f,
-        #16303b,
-        #0a161f,
-        #02080b
-      );
+      background: linear-gradient(135deg, #02080b, #0a161f, #16303b, #0a161f, #02080b);
       background-size: 350% 350%;
       animation: gradientShift 20s ease infinite;
       display: flex;
@@ -46,7 +37,6 @@
       z-index: -2;
     }
 
-    /* Floating WhatsApp icons container */
     .floating-icons {
       position: fixed;
       top: 0;
@@ -70,30 +60,15 @@
     }
 
     @keyframes gradientShift {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     @keyframes floatUpDown {
-      0% {
-        transform: translateY(0);
-        opacity: 0.15;
-      }
-      50% {
-        transform: translateY(-15px);
-        opacity: 0.3;
-      }
-      100% {
-        transform: translateY(0);
-        opacity: 0.15;
-      }
+      0% { transform: translateY(0); opacity: 0.15; }
+      50% { transform: translateY(-15px); opacity: 0.3; }
+      100% { transform: translateY(0); opacity: 0.15; }
     }
 
     .box {
@@ -116,14 +91,8 @@
     }
 
     @keyframes floatIn {
-      0% {
-        transform: translateY(-30px);
-        opacity: 0;
-      }
-      100% {
-        transform: translateY(0);
-        opacity: 1;
-      }
+      0% { transform: translateY(-30px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
     }
 
     .branding-text {
@@ -131,7 +100,6 @@
       font-weight: bold;
       color: #fff;
       text-shadow: 0 0 8px #25d366, 0 0 15px #25d36699;
-      animation: brandingGlow 2s ease-in-out infinite alternate;
     }
 
     .centered-text {
@@ -213,19 +181,50 @@
     }
 
     @keyframes floatLogo {
-      0%,
-      100% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-6px);
-      }
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
     }
 
     footer {
       margin-top: 1.5rem;
       font-size: 0.75rem;
       color: #94a3b8;
+    }
+
+    /* 📱 Mobile responsiveness */
+    @media (max-width: 480px) {
+      .box {
+        max-width: 92%;
+        padding: 1.5rem 1rem;
+        height: auto;
+        border-radius: 16px;
+        box-shadow: 0 0 15px rgba(37, 211, 102, 0.4);
+      }
+
+      .branding-text {
+        font-size: 1.4rem;
+      }
+
+      .centered-text {
+        font-size: 1.1rem;
+      }
+
+      .sub-text {
+        font-size: 0.85rem;
+      }
+
+      input, button {
+        padding: 12px;
+        font-size: 0.95rem;
+      }
+
+      .bottom-logo img {
+        width: 200px;
+      }
+
+      footer {
+        font-size: 0.65rem;
+      }
     }
   </style>
 </head>
@@ -238,30 +237,24 @@
     <i class="fab fa-whatsapp floating-icon" style="top: 20%; left: 85%; animation-duration: 5s; font-size: 1.8rem;"></i>
     <i class="fab fa-whatsapp floating-icon" style="top: 60%; left: 20%; animation-duration: 6.5s; font-size: 2.2rem;"></i>
   </div>
+
   <div class="box" id="box">
     <div>
       <h2 class="branding-text">🔥 ＤＡＮＵＷＡ－ＭＤ 🔥</h2>
       <div id="text">
         <h3 class="centered-text">Link with your WhatsApp number</h3>
-        <p class="sub-text">
-          Enter your active WhatsApp number with country code below to get the Session ID:
-        </p>
+        <p class="sub-text">Enter your active WhatsApp number with country code below to get the Session ID:</p>
         <div class="input-container">
           <input placeholder="+9477xxxxxxx" type="tel" id="number" inputmode="tel" />
           <button id="submit">🔗 Generate Pair Code</button>
         </div>
-        <div id="loading-spinner">
-          <i class="fas fa-spinner fa-spin"></i>
-        </div>
+        <div id="loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
         <main id="pair"></main>
       </div>
     </div>
 
     <div class="bottom-logo">
-      <img
-        src="https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/Danuwa%20-%20MD.png?raw=true"
-        alt="DANUWA-MD Logo"
-      />
+      <img src="https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/Danuwa%20-%20MD.png?raw=true" alt="DANUWA-MD Logo" loading="lazy" />
     </div>
     <footer>COPYRIGHT © | D A N U W A - M D</footer>
   </div>
@@ -303,9 +296,9 @@
       },
     });
 
-    let a = document.getElementById("pair");
-    let b = document.getElementById("submit");
-    let c = document.getElementById("number");
+    const a = document.getElementById("pair");
+    const b = document.getElementById("submit");
+    const c = document.getElementById("number");
 
     async function Copy() {
       let text = document.getElementById("copy").innerText;
@@ -322,11 +315,9 @@
     b.addEventListener("click", async (e) => {
       e.preventDefault();
       if (!c.value) {
-        a.innerHTML =
-          '<a style="color:white;font-weight:bold">❗Enter your WhatsApp number with country code.</a><br>';
+        a.innerHTML = '<a style="color:white;font-weight:bold">❗Enter your WhatsApp number with country code.</a><br>';
       } else if (c.value.replace(/[^0-9]/g, "").length < 11) {
-        a.innerHTML =
-          '<a style="color:white;font-weight:bold">❗Invalid number format. Please try again.</a><br>';
+        a.innerHTML = '<a style="color:white;font-weight:bold">❗Invalid number format. Please try again.</a><br>';
       } else {
         const bc = c.value.replace(/[^0-9]/g, "");
         c.type = "text";
@@ -338,9 +329,9 @@
           let { data } = await axios(`/code?number=${bc}`);
           let code = data.code || "❗ Service Unavailable";
           a.innerHTML = `<font id="copy" onclick="Copy()" style="color:red;font-weight:bold" size="5">CODE: <span style="color:white;font-weight:bold">${code}</span></font><br>`;
+          a.scrollIntoView({ behavior: 'smooth' });
         } catch {
-          a.innerHTML =
-            "<span style='color:red;font-weight:bold'>❗ Error getting code</span>";
+          a.innerHTML = "<span style='color:red;font-weight:bold'>❗ Error getting code</span>";
         }
         document.getElementById("loading-spinner").style.display = "none";
       }

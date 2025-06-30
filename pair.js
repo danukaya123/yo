@@ -20,23 +20,15 @@ function removeFile(FilePath) {
 
 router.get("/", async (req, res) => {
   let num = req.query.number;
-  if (!num) {
-    return res.status(400).send({ error: "Number parameter is required" });
-  }
-
-  // Sanitize number to avoid folder traversal issues
-  num = num.replace(/[^0-9]/g, "");
-  const sessionFolder = `./session_${num}`;
-
   async function PrabathPair() {
-    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+    const { state, saveCreds } = await useMultiFileAuthState(`./session`);
     try {
       let PrabathPairWeb = makeWASocket({
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(
             state.keys,
-            pino({ level: "fatal" }).child({ level: "fatal" })
+            pino({ level: "fatal" }).child({ level: "fatal" }),
           ),
         },
         printQRInTerminal: false,
@@ -46,6 +38,7 @@ router.get("/", async (req, res) => {
 
       if (!PrabathPairWeb.authState.creds.registered) {
         await delay(1500);
+        num = num.replace(/[^0-9]/g, "");
         const code = await PrabathPairWeb.requestPairingCode(num);
         if (!res.headersSent) {
           await res.send({ code });
@@ -53,14 +46,14 @@ router.get("/", async (req, res) => {
       }
 
       PrabathPairWeb.ev.on("creds.update", saveCreds);
-
       PrabathPairWeb.ev.on("connection.update", async (s) => {
         const { connection, lastDisconnect } = s;
         if (connection === "open") {
           try {
             await delay(10000);
+            const sessionPrabath = fs.readFileSync("./session/creds.json");
 
-            const sessionPrabath = fs.readFileSync(`${sessionFolder}/creds.json`);
+            const auth_path = "./session/";
             const user_jid = jidNormalizedUser(PrabathPairWeb.user.id);
 
             function randomMegaId(length = 6, numberLength = 4) {
@@ -69,30 +62,37 @@ router.get("/", async (req, res) => {
               let result = "";
               for (let i = 0; i < length; i++) {
                 result += characters.charAt(
-                  Math.floor(Math.random() * characters.length)
+                  Math.floor(Math.random() * characters.length),
                 );
               }
-              const number = Math.floor(Math.random() * Math.pow(10, numberLength));
+              const number = Math.floor(
+                Math.random() * Math.pow(10, numberLength),
+              );
               return `${result}${number}`;
             }
 
             const mega_url = await upload(
-              fs.createReadStream(`${sessionFolder}/creds.json`),
-              `${randomMegaId()}.json`
+              fs.createReadStream(auth_path + "creds.json"),
+              `${randomMegaId()}.json`,
             );
 
-            const string_session = mega_url.replace("https://mega.nz/file/", "");
+            const string_session = mega_url.replace(
+              "https://mega.nz/file/",
+              "",
+            );
+
             const sid = string_session;
 
-            await PrabathPairWeb.sendMessage(user_jid, { text: sid });
+            const dt = await PrabathPairWeb.sendMessage(user_jid, {
+              text: sid,
+            });
           } catch (e) {
-            console.error("Error sending session:", e);
             exec("pm2 restart prabath");
           }
 
           await delay(100);
-          await removeFile(sessionFolder);
-          // Removed process.exit(0) to avoid killing the server
+          return await removeFile("./session");
+          process.exit(0);
         } else if (
           connection === "close" &&
           lastDisconnect &&
@@ -104,9 +104,10 @@ router.get("/", async (req, res) => {
         }
       });
     } catch (err) {
-      console.error("Pairing service error:", err);
       exec("pm2 restart prabath-md");
-      await removeFile(sessionFolder);
+      console.log("service restarted");
+      PrabathPair();
+      await removeFile("./session");
       if (!res.headersSent) {
         await res.send({ code: "Service Unavailable" });
       }

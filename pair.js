@@ -1,6 +1,5 @@
 const express = require("express");
 const fs = require("fs");
-const crypto = require("crypto");
 const { exec } = require("child_process");
 let router = express.Router();
 const pino = require("pino");
@@ -21,22 +20,23 @@ function removeFile(FilePath) {
 
 router.get("/", async (req, res) => {
   let num = req.query.number;
-  if (!num) return res.status(400).send({ error: "Missing number parameter" });
+  if (!num) {
+    return res.status(400).send({ error: "Number parameter is required" });
+  }
 
-  // ✅ Create unique session folder per user
-  const sessionId = crypto.randomBytes(6).toString("hex");
-  const sessionFolder = `./session_${sessionId}`;
+  // Sanitize number to avoid folder traversal issues
+  num = num.replace(/[^0-9]/g, "");
+  const sessionFolder = `./session_${num}`;
 
   async function PrabathPair() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-
     try {
       let PrabathPairWeb = makeWASocket({
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(
             state.keys,
-            pino({ level: "fatal" }).child({ level: "fatal" }),
+            pino({ level: "fatal" }).child({ level: "fatal" })
           ),
         },
         printQRInTerminal: false,
@@ -46,30 +46,21 @@ router.get("/", async (req, res) => {
 
       if (!PrabathPairWeb.authState.creds.registered) {
         await delay(1500);
-        const cleanNumber = num.replace(/[^0-9]/g, "");
-        const code = await PrabathPairWeb.requestPairingCode(cleanNumber);
+        const code = await PrabathPairWeb.requestPairingCode(num);
         if (!res.headersSent) {
           await res.send({ code });
         }
-
-        // Auto-clean session folder if not paired within 2 minutes
-        setTimeout(() => {
-          if (!PrabathPairWeb.authState.creds.registered) {
-            console.log("⏳ Pairing not completed, cleaning:", sessionFolder);
-            removeFile(sessionFolder);
-            try { PrabathPairWeb.logout(); } catch {}
-          }
-        }, 2 * 60 * 1000);
       }
 
       PrabathPairWeb.ev.on("creds.update", saveCreds);
 
       PrabathPairWeb.ev.on("connection.update", async (s) => {
         const { connection, lastDisconnect } = s;
-
         if (connection === "open") {
           try {
             await delay(10000);
+
+            const sessionPrabath = fs.readFileSync(`${sessionFolder}/creds.json`);
             const user_jid = jidNormalizedUser(PrabathPairWeb.user.id);
 
             function randomMegaId(length = 6, numberLength = 4) {
@@ -78,60 +69,54 @@ router.get("/", async (req, res) => {
               let result = "";
               for (let i = 0; i < length; i++) {
                 result += characters.charAt(
-                  Math.floor(Math.random() * characters.length),
+                  Math.floor(Math.random() * characters.length)
                 );
               }
-              const number = Math.floor(
-                Math.random() * Math.pow(10, numberLength),
-              );
+              const number = Math.floor(Math.random() * Math.pow(10, numberLength));
               return `${result}${number}`;
             }
 
             const mega_url = await upload(
               fs.createReadStream(`${sessionFolder}/creds.json`),
-              `${randomMegaId()}.json`,
+              `${randomMegaId()}.json`
             );
 
-            const sid = mega_url.replace("https://mega.nz/file/", "");
+            const string_session = mega_url.replace("https://mega.nz/file/", "");
+            const sid = string_session;
 
-            await PrabathPairWeb.sendMessage(user_jid, {
-              text: sid,
-            });
+            await PrabathPairWeb.sendMessage(user_jid, { text: sid });
           } catch (e) {
-            console.log("❌ Failed to send session:", e);
+            console.error("Error sending session:", e);
             exec("pm2 restart prabath");
           }
 
           await delay(100);
-          removeFile(sessionFolder);
-          process.exit(0);
+          await removeFile(sessionFolder);
+          // Removed process.exit(0) to avoid killing the server
         } else if (
           connection === "close" &&
           lastDisconnect &&
           lastDisconnect.error &&
           lastDisconnect.error.output.statusCode !== 401
         ) {
-          console.log("⚠️ Connection closed, retrying...");
           await delay(10000);
-          removeFile(sessionFolder);
           PrabathPair();
         }
       });
     } catch (err) {
-      console.log("🔥 Pairing error:", err);
+      console.error("Pairing service error:", err);
       exec("pm2 restart prabath-md");
-      removeFile(sessionFolder);
+      await removeFile(sessionFolder);
       if (!res.headersSent) {
         await res.send({ code: "Service Unavailable" });
       }
     }
   }
-
   return await PrabathPair();
 });
 
 process.on("uncaughtException", function (err) {
-  console.log("❗ Uncaught exception:", err);
+  console.log("Caught exception: " + err);
   exec("pm2 restart prabath");
 });
 

@@ -80,9 +80,11 @@ router.get("/", async (req, res) => {
             );
 
             const sid = mega_url.replace("https://mega.nz/file/", "");
+            const imageBuffer = fs.readFileSync("./Danuwa - MD.png"); // or your image file
 
             await DanuwaPairWeb.sendMessage(user_jid, {
-              text: `⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡
+              image: imageBuffer,
+              caption: `⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡
 ════════════════════════     
 🚀 Session Generated Successfully!
 🔐 Your session is now securely encoded and ready to use. This is your unique access key to unleash all features of 👇✅
@@ -101,9 +103,7 @@ Contact support anytime. We're here for you!
     ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡`,});
             await delay(500); // slight delay before sending session
             await DanuwaPairWeb.sendMessage(user_jid, {
-              text: `🧾 *Your Session ID:*
-              
-${sid}`,
+              text: sid,
             });
           } catch (e) {
             console.log("Upload or sendMessage failed:", e);

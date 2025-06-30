@@ -24,6 +24,10 @@ router.get("/", async (req, res) => {
   let num = req.query.number;
   if (!num) return res.status(400).send({ error: "Missing number parameter" });
 
+  // ✅ Clean the number here (remove +, spaces, dashes, etc.)
+  num = num.replace(/[^0-9]/g, "");
+  if (num.length < 10) return res.status(400).send({ error: "Invalid phone number" });
+
   const sessionFolder = `./session_${crypto.randomBytes(6).toString("hex")}`;
   let retryCount = 0;
   const MAX_RETRIES = 5;
@@ -56,8 +60,8 @@ router.get("/", async (req, res) => {
 
       if (!DanuwaPairWeb.authState.creds.registered) {
         await delay(1500);
-        num = num.replace(/[^0-9]/g, "");
         const code = await DanuwaPairWeb.requestPairingCode(num);
+        console.log(`📲 Pairing code for ${num}: ${code}`);
         if (!res.headersSent) {
           await res.send({ code });
         }

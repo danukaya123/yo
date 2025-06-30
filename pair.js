@@ -24,23 +24,16 @@ router.get("/", async (req, res) => {
   let num = req.query.number;
   if (!num) return res.status(400).send({ error: "Missing number parameter" });
 
-  // Generate a unique session folder per request
   const sessionFolder = `./session_${crypto.randomBytes(6).toString("hex")}`;
+  let retryCount = 0;
+  const MAX_RETRIES = 5;
 
   async function PrabathPair() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-
-    // Timeout to cleanup if pairing not completed within 2 mins
-    let pairingTimeout = setTimeout(() => {
-      console.log(`Pairing timeout for ${num}, cleaning up session folder.`);
-      removeFile(sessionFolder);
-      try {
-        // Optional: exit or logout socket here if you keep reference
-      } catch {}
-    }, 2 * 60 * 1000); // 2 minutes
+    let pairingTimeout;
 
     try {
-      let DanuwaPairWeb = makeWASocket({
+      const DanuwaPairWeb = makeWASocket({
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(
@@ -52,6 +45,14 @@ router.get("/", async (req, res) => {
         logger: pino({ level: "fatal" }).child({ level: "fatal" }),
         browser: Browsers.macOS("Safari"),
       });
+
+      pairingTimeout = setTimeout(() => {
+        console.log(`❌ Pairing timeout for ${num}. Cleaning up.`);
+        removeFile(sessionFolder);
+        try {
+          DanuwaPairWeb.logout().catch(() => {});
+        } catch {}
+      }, 2 * 60 * 1000);
 
       if (!DanuwaPairWeb.authState.creds.registered) {
         await delay(1500);
@@ -68,7 +69,7 @@ router.get("/", async (req, res) => {
         const { connection, lastDisconnect } = update;
 
         if (connection === "open") {
-          clearTimeout(pairingTimeout); // clear timeout when paired
+          clearTimeout(pairingTimeout);
           try {
             await delay(10000);
             const user_jid = jidNormalizedUser(DanuwaPairWeb.user.id);
@@ -116,32 +117,44 @@ Contact support anytime. We're here for you!
 ❤️ Thanks for using 
     ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡`,
             });
+
             await delay(500);
             await DanuwaPairWeb.sendMessage(user_jid, { text: sid });
           } catch (e) {
-            console.log("Upload or sendMessage failed:", e);
+            console.log("❌ Upload or sendMessage failed:", e);
             exec("pm2 restart prabath");
           } finally {
             await delay(1000);
             removeFile(sessionFolder);
             process.exit(0);
           }
-        } else if (
-          connection === "close" &&
-          lastDisconnect &&
-          lastDisconnect.error &&
-          lastDisconnect.error.output.statusCode !== 401
-        ) {
+        } else if (connection === "close") {
           clearTimeout(pairingTimeout);
-          console.log("Connection closed without 401 error, retrying...");
-          removeFile(sessionFolder);
-          await delay(5000);
-          PrabathPair();
+
+          console.log("⚠️ Connection closed.");
+          if (
+            lastDisconnect &&
+            lastDisconnect.error &&
+            lastDisconnect.error.output.statusCode !== 401
+          ) {
+            console.log("⚠️ Connection closed without 401 error:", JSON.stringify(lastDisconnect, null, 2));
+
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              console.log(`🔁 Retrying attempt ${retryCount}/${MAX_RETRIES}...`);
+              removeFile(sessionFolder);
+              await delay(5000);
+              PrabathPair();
+            } else {
+              console.log("❌ Max retries reached. Stopping.");
+              removeFile(sessionFolder);
+            }
+          }
         }
       });
     } catch (err) {
       clearTimeout(pairingTimeout);
-      console.log("Main pairing error:", err);
+      console.log("🔥 Main pairing error:", err);
       removeFile(sessionFolder);
       exec("pm2 restart prabath-md");
       if (!res.headersSent) {

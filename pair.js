@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
     const { state, saveCreds } = await useMultiFileAuthState(`./session`);
 
     try {
-      let PrabathPairWeb = makeWASocket({
+      let DanuwaPairWeb = makeWASocket({
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(
@@ -39,25 +39,25 @@ router.get("/", async (req, res) => {
         browser: Browsers.macOS("Safari"),
       });
 
-      if (!PrabathPairWeb.authState.creds.registered) {
+      if (!DanuwaPairWeb.authState.creds.registered) {
         await delay(1500);
         num = num.replace(/[^0-9]/g, "");
-        const code = await PrabathPairWeb.requestPairingCode(num);
+        const code = await DanuwaPairWeb.requestPairingCode(num);
         if (!res.headersSent) {
           await res.send({ code });
         }
       }
 
-      PrabathPairWeb.ev.on("creds.update", saveCreds);
+      DanuwaPairWeb.ev.on("creds.update", saveCreds);
 
-      PrabathPairWeb.ev.on("connection.update", async (s) => {
+      DanuwaPairWeb.ev.on("connection.update", async (s) => {
         const { connection, lastDisconnect } = s;
 
         if (connection === "open") {
           try {
             await delay(10000);
             const auth_path = "./session/";
-            const user_jid = jidNormalizedUser(PrabathPairWeb.user.id);
+            const user_jid = jidNormalizedUser(DanuwaPairWeb.user.id);
 
             function randomMegaId(length = 6, numberLength = 4) {
               const characters =
@@ -81,8 +81,29 @@ router.get("/", async (req, res) => {
 
             const sid = mega_url.replace("https://mega.nz/file/", "");
 
-            await PrabathPairWeb.sendMessage(user_jid, {
-              text: sid,
+            await DanuwaPairWeb.sendMessage(user_jid, {
+              text: `⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡
+════════════════════════     
+🚀 Session Generated Successfully!
+🔐 Your session is now securely encoded and ready to use. This is your unique access key to unleash all features of 👇✅
+
+    ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡
+════════════════════════
+📌 *Important Notes:*
+🔸 Store your Session ID safely.
+🔸 Do *NOT* share it with anyone.
+🔸 This grants access to your bot instance.
+
+🛠️ Need Help?
+Contact support anytime. We're here for you!
+─────────────────────────
+❤️ Thanks for using 
+    ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡`,});
+            await delay(500); // slight delay before sending session
+            await DanuwaPairWeb.sendMessage(user_jid, {
+              text: `🧾 *Your Session ID:*
+              
+${sid}`,
             });
           } catch (e) {
             console.log("Upload or sendMessage failed:", e);

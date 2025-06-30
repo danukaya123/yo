@@ -2,6 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const { exec } = require("child_process");
 const pino = require("pino");
+const crypto = require("crypto");
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -21,9 +22,22 @@ function removeFile(FilePath) {
 
 router.get("/", async (req, res) => {
   let num = req.query.number;
+  if (!num) return res.status(400).send({ error: "Missing number parameter" });
+
+  // Generate a unique session folder per request
+  const sessionFolder = `./session_${crypto.randomBytes(6).toString("hex")}`;
 
   async function PrabathPair() {
-    const { state, saveCreds } = await useMultiFileAuthState(`./session`);
+    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+
+    // Timeout to cleanup if pairing not completed within 2 mins
+    let pairingTimeout = setTimeout(() => {
+      console.log(`Pairing timeout for ${num}, cleaning up session folder.`);
+      removeFile(sessionFolder);
+      try {
+        // Optional: exit or logout socket here if you keep reference
+      } catch {}
+    }, 2 * 60 * 1000); // 2 minutes
 
     try {
       let DanuwaPairWeb = makeWASocket({
@@ -50,13 +64,13 @@ router.get("/", async (req, res) => {
 
       DanuwaPairWeb.ev.on("creds.update", saveCreds);
 
-      DanuwaPairWeb.ev.on("connection.update", async (s) => {
-        const { connection, lastDisconnect } = s;
+      DanuwaPairWeb.ev.on("connection.update", async (update) => {
+        const { connection, lastDisconnect } = update;
 
         if (connection === "open") {
+          clearTimeout(pairingTimeout); // clear timeout when paired
           try {
             await delay(10000);
-            const auth_path = "./session/";
             const user_jid = jidNormalizedUser(DanuwaPairWeb.user.id);
 
             function randomMegaId(length = 6, numberLength = 4) {
@@ -75,12 +89,12 @@ router.get("/", async (req, res) => {
             }
 
             const mega_url = await upload(
-              fs.createReadStream(auth_path + "creds.json"),
+              fs.createReadStream(sessionFolder + "/creds.json"),
               `${randomMegaId()}.json`
             );
 
             const sid = mega_url.replace("https://mega.nz/file/", "");
-            const imageBuffer = fs.readFileSync("./Danuwa - MD.png"); // or your image file
+            const imageBuffer = fs.readFileSync("./Danuwa - MD.png");
 
             await DanuwaPairWeb.sendMessage(user_jid, {
               image: imageBuffer,
@@ -100,17 +114,16 @@ router.get("/", async (req, res) => {
 Contact support anytime. We're here for you!
 ─────────────────────────
 ❤️ Thanks for using 
-    ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡`,});
-            await delay(500); // slight delay before sending session
-            await DanuwaPairWeb.sendMessage(user_jid, {
-              text: sid,
+    ⚡ Ｄ Ａ Ｎ Ｕ Ｗ Ａ － Ｍ Ｄ ⚡`,
             });
+            await delay(500);
+            await DanuwaPairWeb.sendMessage(user_jid, { text: sid });
           } catch (e) {
             console.log("Upload or sendMessage failed:", e);
             exec("pm2 restart prabath");
           } finally {
             await delay(1000);
-            removeFile("./session");
+            removeFile(sessionFolder);
             process.exit(0);
           }
         } else if (
@@ -119,14 +132,18 @@ Contact support anytime. We're here for you!
           lastDisconnect.error &&
           lastDisconnect.error.output.statusCode !== 401
         ) {
-          await delay(10000);
+          clearTimeout(pairingTimeout);
+          console.log("Connection closed without 401 error, retrying...");
+          removeFile(sessionFolder);
+          await delay(5000);
           PrabathPair();
         }
       });
     } catch (err) {
+      clearTimeout(pairingTimeout);
       console.log("Main pairing error:", err);
+      removeFile(sessionFolder);
       exec("pm2 restart prabath-md");
-      await removeFile("./session");
       if (!res.headersSent) {
         await res.send({ code: "ERROR" });
       }
